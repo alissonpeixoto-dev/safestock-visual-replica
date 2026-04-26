@@ -1,15 +1,26 @@
 import { AppHeader } from "@/components/AppHeader";
-import { useState, DragEvent } from "react";
-import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X } from "lucide-react";
+import { useState, DragEvent, useEffect } from "react";
+import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 type ColumnKey = "todo" | "doing" | "done" | "backlog";
-interface Card { id: string; title: string; column: ColumnKey; }
+interface Card { id: string; title: string; description?: string; column: ColumnKey; }
 
 const COLUMNS: { key: Exclude<ColumnKey, "backlog">; title: string }[] = [
   { key: "todo", title: "A fazer" },
   { key: "doing", title: "Em andamento" },
   { key: "done", title: "Concluído" },
+];
+
+const ALL_STATUS: { key: ColumnKey; title: string }[] = [
+  { key: "backlog", title: "Backlog" },
+  ...COLUMNS,
 ];
 
 const initialCards: Card[] = [
@@ -28,10 +39,60 @@ const Sprints = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<ColumnKey | null>(null);
 
+  // ---- Modal de edição ----
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [form, setForm] = useState<{ title: string; description: string; column: ColumnKey }>({
+    title: "", description: "", column: "backlog",
+  });
+  const [formErr, setFormErr] = useState<{ title?: string }>({});
+  const editingCard = cards.find((c) => c.id === editingCardId) || null;
+
+  useEffect(() => {
+    if (editingCard) {
+      setForm({
+        title: editingCard.title,
+        description: editingCard.description ?? "",
+        column: editingCard.column,
+      });
+      setFormErr({});
+    }
+  }, [editingCardId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openEdit = (id: string) => setEditingCardId(id);
+  const closeEdit = () => setEditingCardId(null);
+
+  const saveEdit = () => {
+    const title = form.title.trim();
+    if (!title) {
+      setFormErr({ title: "O título é obrigatório" });
+      return;
+    }
+    if (title.length > 120) {
+      setFormErr({ title: "Máximo 120 caracteres" });
+      return;
+    }
+    setCards((arr) =>
+      arr.map((c) =>
+        c.id === editingCardId
+          ? { ...c, title, description: form.description.trim().slice(0, 1000), column: form.column }
+          : c
+      )
+    );
+    toast.success("Cartão atualizado");
+    closeEdit();
+  };
+
+  const deleteFromModal = () => {
+    if (!editingCardId) return;
+    removeCard(editingCardId);
+    toast("Cartão excluído");
+    closeEdit();
+  };
+
   const addCard = (column: ColumnKey) => {
     const title = prompt(column === "backlog" ? "Nova tarefa do backlog" : "Nome do cartão");
     if (!title?.trim()) return;
-    setCards((c) => [...c, { id: crypto.randomUUID(), title: title.trim(), column }]);
+    setCards((c) => [...c, { id: crypto.randomUUID(), title: title.trim().slice(0, 120), column }]);
   };
 
   const removeCard = (id: string) => setCards((c) => c.filter((x) => x.id !== id));
@@ -64,15 +125,30 @@ const Sprints = () => {
       draggable
       onDragStart={(e) => onDragStart(e, c.id)}
       onDragEnd={onDragEnd}
+      onClick={() => openEdit(c.id)}
       className={`group relative w-full text-left text-sm px-3 py-2 rounded-lg bg-background border border-border hover:border-accent transition-all cursor-grab active:cursor-grabbing flex items-center gap-2 ${
         draggingId === c.id ? "opacity-40 scale-[0.98]" : ""
       }`}
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-      <span className="flex-1 break-words">{c.title}</span>
+      <span className="flex-1 break-words">
+        {c.title}
+        {c.description && (
+          <span className="block text-[11px] text-muted-foreground/80 truncate mt-0.5">
+            {c.description}
+          </span>
+        )}
+      </span>
       <button
-        onClick={() => removeCard(c.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-destructive"
+        onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
+        aria-label="Editar"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
         aria-label="Remover"
       >
         <X className="h-3.5 w-3.5" />
@@ -209,6 +285,107 @@ const Sprints = () => {
           </div>
         )}
       </div>
+
+      {/* ===== Modal de edição ===== */}
+      <Dialog open={!!editingCardId} onOpenChange={(o) => !o && closeEdit()}>
+        <DialogContent className="sm:max-w-lg ss-card border-2 border-foreground/90 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Editar cartão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Atualize o título, descrição ou status da tarefa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Título <span className="text-destructive">*</span>
+              </label>
+              <input
+                autoFocus
+                value={form.title}
+                maxLength={120}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, title: e.target.value }));
+                  if (formErr.title) setFormErr({});
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                }}
+                placeholder="Nome da tarefa"
+                className="ss-input mt-1.5"
+                aria-invalid={!!formErr.title}
+              />
+              {formErr.title && (
+                <p className="mt-1 text-xs text-destructive pl-2">{formErr.title}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Descrição
+              </label>
+              <textarea
+                value={form.description}
+                maxLength={1000}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Detalhes da tarefa (opcional)"
+                rows={4}
+                className="w-full mt-1.5 rounded-2xl border border-border bg-input px-5 py-3 text-sm
+                           placeholder:text-muted-foreground/70 resize-none
+                           focus:outline-none focus:ring-2 focus:ring-accent/60 focus:border-accent
+                           transition-[box-shadow,border-color] duration-200"
+              />
+              <p className="text-[11px] text-muted-foreground/70 pl-2 mt-1">
+                {form.description.length}/1000
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Status
+              </label>
+              <Select
+                value={form.column}
+                onValueChange={(v) => setForm((f) => ({ ...f, column: v as ColumnKey }))}
+              >
+                <SelectTrigger className="ss-input mt-1.5 h-auto py-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_STATUS.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+            <button
+              type="button"
+              onClick={deleteFromModal}
+              className="sm:mr-auto inline-flex items-center justify-center gap-2 rounded-full border-2 border-destructive/60 text-destructive px-5 py-2.5 text-sm font-medium hover:bg-destructive/10 active:scale-[0.98] transition-all"
+            >
+              <Trash2 className="h-4 w-4" /> Excluir
+            </button>
+            <button
+              type="button"
+              onClick={closeEdit}
+              className="rounded-full border-2 border-foreground/80 px-6 py-2.5 text-sm font-medium hover:bg-foreground/5 active:scale-[0.98] transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={saveEdit}
+              className="rounded-full bg-accent text-accent-foreground font-medium px-6 py-2.5 text-sm hover:bg-accent/90 active:scale-[0.98] transition-all shadow-[0_2px_0_0_hsl(var(--foreground)/0.9)]"
+            >
+              Salvar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
