@@ -39,10 +39,60 @@ const Sprints = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<ColumnKey | null>(null);
 
+  // ---- Modal de edição ----
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [form, setForm] = useState<{ title: string; description: string; column: ColumnKey }>({
+    title: "", description: "", column: "backlog",
+  });
+  const [formErr, setFormErr] = useState<{ title?: string }>({});
+  const editingCard = cards.find((c) => c.id === editingCardId) || null;
+
+  useEffect(() => {
+    if (editingCard) {
+      setForm({
+        title: editingCard.title,
+        description: editingCard.description ?? "",
+        column: editingCard.column,
+      });
+      setFormErr({});
+    }
+  }, [editingCardId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openEdit = (id: string) => setEditingCardId(id);
+  const closeEdit = () => setEditingCardId(null);
+
+  const saveEdit = () => {
+    const title = form.title.trim();
+    if (!title) {
+      setFormErr({ title: "O título é obrigatório" });
+      return;
+    }
+    if (title.length > 120) {
+      setFormErr({ title: "Máximo 120 caracteres" });
+      return;
+    }
+    setCards((arr) =>
+      arr.map((c) =>
+        c.id === editingCardId
+          ? { ...c, title, description: form.description.trim().slice(0, 1000), column: form.column }
+          : c
+      )
+    );
+    toast.success("Cartão atualizado");
+    closeEdit();
+  };
+
+  const deleteFromModal = () => {
+    if (!editingCardId) return;
+    removeCard(editingCardId);
+    toast("Cartão excluído");
+    closeEdit();
+  };
+
   const addCard = (column: ColumnKey) => {
     const title = prompt(column === "backlog" ? "Nova tarefa do backlog" : "Nome do cartão");
     if (!title?.trim()) return;
-    setCards((c) => [...c, { id: crypto.randomUUID(), title: title.trim(), column }]);
+    setCards((c) => [...c, { id: crypto.randomUUID(), title: title.trim().slice(0, 120), column }]);
   };
 
   const removeCard = (id: string) => setCards((c) => c.filter((x) => x.id !== id));
@@ -75,15 +125,30 @@ const Sprints = () => {
       draggable
       onDragStart={(e) => onDragStart(e, c.id)}
       onDragEnd={onDragEnd}
+      onClick={() => openEdit(c.id)}
       className={`group relative w-full text-left text-sm px-3 py-2 rounded-lg bg-background border border-border hover:border-accent transition-all cursor-grab active:cursor-grabbing flex items-center gap-2 ${
         draggingId === c.id ? "opacity-40 scale-[0.98]" : ""
       }`}
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-      <span className="flex-1 break-words">{c.title}</span>
+      <span className="flex-1 break-words">
+        {c.title}
+        {c.description && (
+          <span className="block text-[11px] text-muted-foreground/80 truncate mt-0.5">
+            {c.description}
+          </span>
+        )}
+      </span>
       <button
-        onClick={() => removeCard(c.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-destructive"
+        onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
+        aria-label="Editar"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
         aria-label="Remover"
       >
         <X className="h-3.5 w-3.5" />
