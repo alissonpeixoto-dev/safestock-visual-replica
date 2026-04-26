@@ -61,7 +61,7 @@ const Sprints = () => {
     setOverCol((c) => (c === col ? null : c));
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>, col: ColumnKey | "backlog") => {
+  const onDrop = (e: DragEvent<HTMLElement>, col: ColumnKey | "backlog") => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain") || draggingId;
     if (!id) return;
