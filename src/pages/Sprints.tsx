@@ -285,6 +285,107 @@ const Sprints = () => {
           </div>
         )}
       </div>
+
+      {/* ===== Modal de edição ===== */}
+      <Dialog open={!!editingCardId} onOpenChange={(o) => !o && closeEdit()}>
+        <DialogContent className="sm:max-w-lg ss-card border-2 border-foreground/90 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Editar cartão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Atualize o título, descrição ou status da tarefa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Título <span className="text-destructive">*</span>
+              </label>
+              <input
+                autoFocus
+                value={form.title}
+                maxLength={120}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, title: e.target.value }));
+                  if (formErr.title) setFormErr({});
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                }}
+                placeholder="Nome da tarefa"
+                className="ss-input mt-1.5"
+                aria-invalid={!!formErr.title}
+              />
+              {formErr.title && (
+                <p className="mt-1 text-xs text-destructive pl-2">{formErr.title}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Descrição
+              </label>
+              <textarea
+                value={form.description}
+                maxLength={1000}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Detalhes da tarefa (opcional)"
+                rows={4}
+                className="w-full mt-1.5 rounded-2xl border border-border bg-input px-5 py-3 text-sm
+                           placeholder:text-muted-foreground/70 resize-none
+                           focus:outline-none focus:ring-2 focus:ring-accent/60 focus:border-accent
+                           transition-[box-shadow,border-color] duration-200"
+              />
+              <p className="text-[11px] text-muted-foreground/70 pl-2 mt-1">
+                {form.description.length}/1000
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+                Status
+              </label>
+              <Select
+                value={form.column}
+                onValueChange={(v) => setForm((f) => ({ ...f, column: v as ColumnKey }))}
+              >
+                <SelectTrigger className="ss-input mt-1.5 h-auto py-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_STATUS.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>{s.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+            <button
+              type="button"
+              onClick={deleteFromModal}
+              className="sm:mr-auto inline-flex items-center justify-center gap-2 rounded-full border-2 border-destructive/60 text-destructive px-5 py-2.5 text-sm font-medium hover:bg-destructive/10 active:scale-[0.98] transition-all"
+            >
+              <Trash2 className="h-4 w-4" /> Excluir
+            </button>
+            <button
+              type="button"
+              onClick={closeEdit}
+              className="rounded-full border-2 border-foreground/80 px-6 py-2.5 text-sm font-medium hover:bg-foreground/5 active:scale-[0.98] transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={saveEdit}
+              className="rounded-full bg-accent text-accent-foreground font-medium px-6 py-2.5 text-sm hover:bg-accent/90 active:scale-[0.98] transition-all shadow-[0_2px_0_0_hsl(var(--foreground)/0.9)]"
+            >
+              Salvar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
