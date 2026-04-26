@@ -51,7 +51,7 @@ const Sprints = () => {
     setOverCol(null);
   };
 
-  const onDragOver = (e: DragEvent<HTMLDivElement>, col: ColumnKey | "backlog") => {
+  const onDragOver = (e: DragEvent<HTMLElement>, col: ColumnKey | "backlog") => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     if (overCol !== col) setOverCol(col);
