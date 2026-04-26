@@ -1,15 +1,26 @@
 import { AppHeader } from "@/components/AppHeader";
-import { useState, DragEvent } from "react";
-import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X } from "lucide-react";
+import { useState, DragEvent, useEffect } from "react";
+import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 type ColumnKey = "todo" | "doing" | "done" | "backlog";
-interface Card { id: string; title: string; column: ColumnKey; }
+interface Card { id: string; title: string; description?: string; column: ColumnKey; }
 
 const COLUMNS: { key: Exclude<ColumnKey, "backlog">; title: string }[] = [
   { key: "todo", title: "A fazer" },
   { key: "doing", title: "Em andamento" },
   { key: "done", title: "Concluído" },
+];
+
+const ALL_STATUS: { key: ColumnKey; title: string }[] = [
+  { key: "backlog", title: "Backlog" },
+  ...COLUMNS,
 ];
 
 const initialCards: Card[] = [
