@@ -40,7 +40,7 @@ const Sprints = () => {
   };
 
   // Drag handlers
-  const onDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
+  const onDragStart = (e: DragEvent<HTMLElement>, id: string) => {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
