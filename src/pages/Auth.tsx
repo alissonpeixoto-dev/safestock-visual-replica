@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Brand } from "@/components/Brand";
 import { toast } from "sonner";
+import { loginUser, registerUser, setCurrentUser } from "@/lib/session";
 
 type Mode = "login" | "signup";
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,6 +34,17 @@ const Auth = () => {
     if (!password) errs.password = "Informe sua senha";
     setLoginErr(errs);
     if (Object.keys(errs).length) return;
+    const res = loginUser(email, password);
+    if (res.ok === false) {
+      const error = res.error;
+      setLoginErr({
+        email: error.includes("Usuário") ? error : undefined,
+        password: error.includes("Senha") ? error : undefined,
+      });
+      toast.error(error);
+      return;
+    }
+    setCurrentUser(email);
     toast.success("Bem-vindo de volta!");
     navigate("/dashboard");
   };
@@ -53,6 +65,14 @@ const Auth = () => {
     if (confirm !== password) errs.confirm = "As senhas não coincidem";
     setSignupErr(errs);
     if (Object.keys(errs).length) return;
+    const res = registerUser(email, password, name);
+    if (res.ok === false) {
+      const error = res.error;
+      setSignupErr({ email: error });
+      toast.error(error);
+      return;
+    }
+    setCurrentUser(email);
     toast.success("Conta criada com sucesso!");
     navigate("/dashboard");
   };

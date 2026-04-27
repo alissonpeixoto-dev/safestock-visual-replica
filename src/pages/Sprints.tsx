@@ -1,6 +1,6 @@
 import { AppHeader } from "@/components/AppHeader";
 import { useState, DragEvent, useEffect } from "react";
-import { useLocation, useParams, Link } from "react-router-dom";
+import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
 import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -9,6 +9,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  cardsStorageKey,
+  getCurrentUser,
+  projectNameStorageKey,
+  projectsStorageKey,
+} from "@/lib/session";
 
 type ColumnKey = "todo" | "doing" | "review" | "done" | "backlog";
 interface Card { id: string; title: string; description?: string; column: ColumnKey; }
@@ -25,12 +31,9 @@ const ALL_STATUS: { key: ColumnKey; title: string }[] = [
   ...COLUMNS,
 ];
 
-const cardsKey = (pid: string | undefined) => `safestock:cards:${pid ?? "default"}`;
-const nameKey = (pid: string | undefined) => `safestock:project-name:${pid ?? "default"}`;
-
 const loadCards = (pid: string | undefined): Card[] => {
   try {
-    const raw = localStorage.getItem(cardsKey(pid));
+    const raw = localStorage.getItem(cardsStorageKey(pid));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -40,9 +43,16 @@ const loadCards = (pid: string | undefined): Card[] => {
 const ProjectSprints = () => {
   const { projectId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Redireciona se não autenticado
+  useEffect(() => {
+    if (!getCurrentUser()) navigate("/auth");
+  }, [navigate]);
+
   const initialName =
     (location.state as { name?: string } | null)?.name ??
-    localStorage.getItem(nameKey(projectId)) ??
+    localStorage.getItem(projectNameStorageKey(projectId)) ??
     "Meu projeto";
 
   const [projectName, setProjectName] = useState(initialName);
@@ -54,19 +64,21 @@ const ProjectSprints = () => {
 
   // Persist
   useEffect(() => {
-    localStorage.setItem(cardsKey(projectId), JSON.stringify(cards));
+    if (!getCurrentUser()) return;
+    localStorage.setItem(cardsStorageKey(projectId), JSON.stringify(cards));
   }, [cards, projectId]);
 
   useEffect(() => {
-    localStorage.setItem(nameKey(projectId), projectName);
-    // Atualiza nome no índice de projetos
+    if (!getCurrentUser()) return;
+    localStorage.setItem(projectNameStorageKey(projectId), projectName);
+    // Atualiza nome no índice de projetos do usuário atual
     try {
-      const raw = localStorage.getItem("safestock:projects");
+      const raw = localStorage.getItem(projectsStorageKey());
       if (raw) {
         const arr = JSON.parse(raw);
         if (Array.isArray(arr)) {
           const next = arr.map((p: any) => p.id === projectId ? { ...p, name: projectName } : p);
-          localStorage.setItem("safestock:projects", JSON.stringify(next));
+          localStorage.setItem(projectsStorageKey(), JSON.stringify(next));
         }
       }
     } catch {}
