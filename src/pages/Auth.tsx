@@ -35,9 +35,13 @@ const Auth = () => {
     setLoginErr(errs);
     if (Object.keys(errs).length) return;
     const res = loginUser(email, password);
-    if (!res.ok) {
-      setLoginErr({ email: res.error.includes("Usuário") ? res.error : undefined, password: res.error.includes("Senha") ? res.error : undefined });
-      toast.error(res.error);
+    if (res.ok === false) {
+      const error = res.error;
+      setLoginErr({
+        email: error.includes("Usuário") ? error : undefined,
+        password: error.includes("Senha") ? error : undefined,
+      });
+      toast.error(error);
       return;
     }
     setCurrentUser(email);
@@ -62,9 +66,10 @@ const Auth = () => {
     setSignupErr(errs);
     if (Object.keys(errs).length) return;
     const res = registerUser(email, password, name);
-    if (!res.ok) {
-      setSignupErr({ email: res.error });
-      toast.error(res.error);
+    if (res.ok === false) {
+      const error = res.error;
+      setSignupErr({ email: error });
+      toast.error(error);
       return;
     }
     setCurrentUser(email);
