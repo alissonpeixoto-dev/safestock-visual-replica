@@ -168,6 +168,14 @@ const ProjectSprints = () => {
 
       {/* Project bar */}
       <div className="bg-muted/70 border-b border-border px-4 md:px-8 py-3 flex items-center gap-3">
+        <Link
+          to="/dashboard"
+          className="p-1.5 rounded-full hover:bg-foreground/10 active:scale-95 transition-transform"
+          aria-label="Voltar para projetos"
+          title="Voltar para projetos"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         {editing ? (
           <input
             autoFocus
@@ -178,7 +186,7 @@ const ProjectSprints = () => {
             className="bg-transparent text-xl font-bold outline-none border-b border-foreground/40"
           />
         ) : (
-          <h1 className="text-xl md:text-2xl font-bold">{projectName}</h1>
+          <h1 className="text-xl md:text-2xl font-bold truncate">{projectName}</h1>
         )}
         <button onClick={() => setEditing(true)} className="p-1 hover:bg-foreground/10 rounded active:scale-95 transition-transform" aria-label="Editar nome">
           <Pencil className="h-4 w-4" />
@@ -205,8 +213,11 @@ const ProjectSprints = () => {
       </div>
 
       <div className="flex-1 px-4 md:px-8 py-6">
-        {/* 3 Colunas */}
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Kanban: 3 colunas iguais */}
+        <div
+          className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch"
+          style={{ gridAutoRows: "1fr" }}
+        >
           {COLUMNS.map((col, i) => {
             const colCards = cards.filter((c) => c.column === col.key);
             const isOver = overCol === col.key;
@@ -217,27 +228,29 @@ const ProjectSprints = () => {
                 onDragOver={(e) => onDragOver(e, col.key)}
                 onDragLeave={() => onDragLeave(col.key)}
                 onDrop={(e) => onDrop(e, col.key)}
-                className={`ss-card p-4 animate-fade-up flex flex-col transition-colors min-h-[280px] ${
+                className={`ss-card p-5 animate-fade-up flex flex-col transition-colors min-h-[420px] h-full ${
                   isOver ? "bg-accent/15 border-accent" : ""
                 }`}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">
-                    {col.title}{" "}
-                    <span className="ml-1 text-xs text-muted-foreground">({colCards.length})</span>
+                <div className="relative flex items-center justify-center mb-4 pb-3 border-b border-border/70">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-center">
+                    {col.title}
+                    <span className="ml-2 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-foreground/10 text-[11px] font-semibold text-foreground/80">
+                      {colCards.length}
+                    </span>
                   </h3>
-                  <MoreVertical className="h-4 w-4 text-foreground/70" />
+                  <MoreVertical className="h-4 w-4 text-foreground/60 absolute right-0" />
                 </div>
 
-                <div className="space-y-2 mb-3 flex-1">
+                <div className="space-y-2.5 mb-3 flex-1">
                   {colCards.map(renderCard)}
                   {isOver && (
-                    <div className="border-2 border-dashed border-accent/60 rounded-lg py-3 text-center text-xs text-accent">
+                    <div className="border-2 border-dashed border-accent/60 rounded-xl py-4 text-center text-xs text-accent font-medium">
                       Solte aqui
                     </div>
                   )}
                   {!isOver && colCards.length === 0 && (
-                    <p className="text-xs text-muted-foreground/70 text-center py-6">
+                    <p className="text-xs text-muted-foreground/70 text-center py-8">
                       Arraste cartões para cá
                     </p>
                   )}
@@ -245,7 +258,7 @@ const ProjectSprints = () => {
 
                 <button
                   onClick={() => addCard(col.key)}
-                  className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto"
+                  className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto pt-2 border-t border-border/50"
                 >
                   <span>Adicionar um cartão</span>
                   <Plus className="h-4 w-4" />
