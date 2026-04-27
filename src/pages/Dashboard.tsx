@@ -1,11 +1,12 @@
 import { AppHeader } from "@/components/AppHeader";
 import { MessageSquare, ArrowDownUp, Plus, Trash2, Pencil } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { cardsStorageKey, getCurrentUser, projectsStorageKey } from "@/lib/session";
 
 interface Project {
   id: string;
@@ -13,11 +14,9 @@ interface Project {
   updatedAt: number;
 }
 
-const STORAGE_KEY = "safestock:projects";
-
 const loadProjects = (): Project[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(projectsStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -39,8 +38,19 @@ const formatRelative = (ts: number) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [sortDesc, setSortDesc] = useState(true);
-  const [items, setItems] = useState<Project[]>(loadProjects);
+  const [items, setItems] = useState<Project[]>([]);
+
+  // Carrega dados do usuário atual; redireciona se não autenticado
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!u) {
+      navigate("/auth");
+      return;
+    }
+    setItems(loadProjects());
+  }, [navigate]);
 
   // Modal criar/editar
   const [openForm, setOpenForm] = useState(false);
@@ -52,7 +62,8 @@ const Dashboard = () => {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (!getCurrentUser()) return;
+    localStorage.setItem(projectsStorageKey(), JSON.stringify(items));
   }, [items]);
 
   const sorted = useMemo(
@@ -92,7 +103,7 @@ const Dashboard = () => {
 
   const removeProject = (id: string) => {
     setItems((arr) => arr.filter((p) => p.id !== id));
-    try { localStorage.removeItem(`safestock:cards:${id}`); } catch {}
+    try { localStorage.removeItem(cardsStorageKey(id)); } catch {}
     toast("Projeto excluído");
     setConfirmId(null);
   };
