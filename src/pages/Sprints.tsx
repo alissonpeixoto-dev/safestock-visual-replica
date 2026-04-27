@@ -10,12 +10,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-type ColumnKey = "todo" | "doing" | "done" | "backlog";
+type ColumnKey = "todo" | "doing" | "review" | "done" | "backlog";
 interface Card { id: string; title: string; description?: string; column: ColumnKey; }
 
 const COLUMNS: { key: Exclude<ColumnKey, "backlog">; title: string }[] = [
   { key: "todo", title: "A fazer" },
   { key: "doing", title: "Em andamento" },
+  { key: "review", title: "Em revisão" },
   { key: "done", title: "Concluído" },
 ];
 
@@ -24,26 +25,54 @@ const ALL_STATUS: { key: ColumnKey; title: string }[] = [
   ...COLUMNS,
 ];
 
-const initialCards: Card[] = [
-  { id: "1", title: "Configurar ambiente", column: "backlog" },
-  { id: "2", title: "Modelar banco de dados", column: "backlog" },
-  { id: "3", title: "Criar tela de login", column: "backlog" },
-  { id: "4", title: "Definir rotas da API", column: "backlog" },
-  { id: "5", title: "Escrever documentação", column: "backlog" },
-];
+const cardsKey = (pid: string | undefined) => `safestock:cards:${pid ?? "default"}`;
+const nameKey = (pid: string | undefined) => `safestock:project-name:${pid ?? "default"}`;
+
+const loadCards = (pid: string | undefined): Card[] => {
+  try {
+    const raw = localStorage.getItem(cardsKey(pid));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+};
 
 const ProjectSprints = () => {
   const { projectId } = useParams();
   const location = useLocation();
-  const initialName = (location.state as { name?: string } | null)?.name ?? "Meu projeto";
+  const initialName =
+    (location.state as { name?: string } | null)?.name ??
+    localStorage.getItem(nameKey(projectId)) ??
+    "Meu projeto";
+
   const [projectName, setProjectName] = useState(initialName);
   const [editing, setEditing] = useState(false);
   const [showBacklog, setShowBacklog] = useState(true);
-  const [cards, setCards] = useState<Card[]>(initialCards);
+  const [cards, setCards] = useState<Card[]>(() => loadCards(projectId));
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<ColumnKey | null>(null);
 
-  // ---- Modal de edição ----
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(cardsKey(projectId), JSON.stringify(cards));
+  }, [cards, projectId]);
+
+  useEffect(() => {
+    localStorage.setItem(nameKey(projectId), projectName);
+    // Atualiza nome no índice de projetos
+    try {
+      const raw = localStorage.getItem("safestock:projects");
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          const next = arr.map((p: any) => p.id === projectId ? { ...p, name: projectName } : p);
+          localStorage.setItem("safestock:projects", JSON.stringify(next));
+        }
+      }
+    } catch {}
+  }, [projectName, projectId]);
+
+  // ---- Modal de edição de cartão ----
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [form, setForm] = useState<{ title: string; description: string; column: ColumnKey }>({
     title: "", description: "", column: "backlog",
@@ -67,14 +96,8 @@ const ProjectSprints = () => {
 
   const saveEdit = () => {
     const title = form.title.trim();
-    if (!title) {
-      setFormErr({ title: "O título é obrigatório" });
-      return;
-    }
-    if (title.length > 120) {
-      setFormErr({ title: "Máximo 120 caracteres" });
-      return;
-    }
+    if (!title) { setFormErr({ title: "O título é obrigatório" }); return; }
+    if (title.length > 120) { setFormErr({ title: "Máximo 120 caracteres" }); return; }
     setCards((arr) =>
       arr.map((c) =>
         c.id === editingCardId
@@ -93,15 +116,29 @@ const ProjectSprints = () => {
     closeEdit();
   };
 
-  const addCard = (column: ColumnKey) => {
-    const title = prompt(column === "backlog" ? "Nova tarefa do backlog" : "Nome do cartão");
-    if (!title?.trim()) return;
-    setCards((c) => [...c, { id: crypto.randomUUID(), title: title.trim().slice(0, 120), column }]);
+  // ---- Modal de criação ----
+  const [createCol, setCreateCol] = useState<ColumnKey | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newErr, setNewErr] = useState("");
+
+  const openCreate = (col: ColumnKey) => {
+    setCreateCol(col);
+    setNewTitle("");
+    setNewErr("");
+  };
+
+  const submitCreate = () => {
+    const t = newTitle.trim();
+    if (!t) { setNewErr("Informe um título"); return; }
+    if (!createCol) return;
+    setCards((c) => [...c, { id: crypto.randomUUID(), title: t.slice(0, 120), column: createCol }]);
+    toast.success("Cartão criado");
+    setCreateCol(null);
   };
 
   const removeCard = (id: string) => setCards((c) => c.filter((x) => x.id !== id));
 
-  // ---- Drag & Drop (HTML5 nativo) ----
+  // ---- Drag & Drop ----
   const onDragStart = (e: DragEvent<HTMLElement>, id: string) => {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
@@ -143,20 +180,22 @@ const ProjectSprints = () => {
           </p>
         )}
       </div>
-      <div className="flex items-center gap-0.5 shrink-0 -mr-1">
+      <div className="flex items-center gap-1 shrink-0 -mr-1">
         <button
           onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
           aria-label="Editar"
+          title="Editar"
         >
           <Pencil className="h-3 w-3" />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
+          onClick={(e) => { e.stopPropagation(); removeCard(c.id); toast("Cartão excluído"); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
-          aria-label="Remover"
+          aria-label="Excluir"
+          title="Excluir"
         >
-          <X className="h-3 w-3" />
+          <Trash2 className="h-3 w-3" />
         </button>
       </div>
     </div>
@@ -188,14 +227,15 @@ const ProjectSprints = () => {
         ) : (
           <h1 className="text-xl md:text-2xl font-bold truncate">{projectName}</h1>
         )}
-        <button onClick={() => setEditing(true)} className="p-1 hover:bg-foreground/10 rounded active:scale-95 transition-transform" aria-label="Editar nome">
+        <button onClick={() => setEditing(true)} className="p-1 hover:bg-foreground/10 rounded active:scale-95 transition-transform" aria-label="Editar nome" title="Editar nome">
           <Pencil className="h-4 w-4" />
         </button>
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowBacklog((v) => !v)}
-            className="p-1 hover:bg-foreground/10 rounded active:scale-95 transition-transform"
+            className="p-1.5 hover:bg-foreground/10 rounded active:scale-95 transition-transform"
             aria-label="Alternar backlog"
+            title={showBacklog ? "Ocultar backlog" : "Mostrar backlog"}
           >
             <ChevronDown className={`h-5 w-5 transition-transform ${showBacklog ? "" : "-rotate-90"}`} />
           </button>
@@ -203,73 +243,76 @@ const ProjectSprints = () => {
             className="h-8 w-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center active:scale-95 transition-transform"
             onClick={() => toast("Membros do projeto", { description: "Convide colegas em breve" })}
             aria-label="Membros"
+            title="Membros"
           >
             <Users className="h-4 w-4" />
           </button>
-          <button className="p-1 hover:bg-foreground/10 rounded active:scale-95 transition-transform" aria-label="Mais opções">
+          <button className="p-1.5 hover:bg-foreground/10 rounded active:scale-95 transition-transform" aria-label="Mais opções" title="Mais opções">
             <MoreVertical className="h-5 w-5" />
           </button>
         </div>
       </div>
 
       <div className="flex-1 px-4 md:px-6 py-5">
-        {/* Kanban: 3 colunas compactas, estilo Trello */}
-        <div
-          className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start mx-auto"
-          style={{ maxWidth: "1100px" }}
-        >
-          {COLUMNS.map((col, i) => {
-            const colCards = cards.filter((c) => c.column === col.key);
-            const isOver = overCol === col.key;
-            return (
-              <div
-                key={col.key}
-                style={{ animationDelay: `${i * 80}ms` }}
-                onDragOver={(e) => onDragOver(e, col.key)}
-                onDragLeave={() => onDragLeave(col.key)}
-                onDrop={(e) => onDrop(e, col.key)}
-                className={`ss-card p-3 animate-fade-up flex flex-col transition-colors w-full ${
-                  isOver ? "bg-accent/15 border-accent" : ""
-                }`}
-              >
-                <div className="relative flex items-center justify-center mb-2.5 pb-2 border-b border-border/60">
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-center text-foreground/85">
-                    {col.title}
-                    <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75">
-                      {colCards.length}
-                    </span>
-                  </h3>
-                  <MoreVertical className="h-3.5 w-3.5 text-foreground/50 absolute right-0" />
-                </div>
-
+        {/* Kanban: 4 colunas compactas, com scroll horizontal no mobile */}
+        <div className="overflow-x-auto pb-2 -mx-4 md:mx-0 px-4 md:px-0">
+          <div
+            className="flex gap-4 mx-auto items-start"
+            style={{ maxWidth: "1200px", minWidth: "fit-content" }}
+          >
+            {COLUMNS.map((col, i) => {
+              const colCards = cards.filter((c) => c.column === col.key);
+              const isOver = overCol === col.key;
+              return (
                 <div
-                  className="space-y-1.5 mb-2 flex-1 overflow-y-auto pr-0.5"
-                  style={{ maxHeight: "460px", minHeight: "120px" }}
+                  key={col.key}
+                  style={{ animationDelay: `${i * 80}ms`, flex: "1 1 0", minWidth: "250px", maxWidth: "300px" }}
+                  onDragOver={(e) => onDragOver(e, col.key)}
+                  onDragLeave={() => onDragLeave(col.key)}
+                  onDrop={(e) => onDrop(e, col.key)}
+                  className={`ss-card p-3 animate-fade-up flex flex-col transition-colors ${
+                    isOver ? "bg-accent/15 border-accent" : ""
+                  }`}
                 >
-                  {colCards.map(renderCard)}
-                  {isOver && (
-                    <div className="border-2 border-dashed border-accent/60 rounded-md py-3 text-center text-[11px] text-accent font-medium">
-                      Solte aqui
-                    </div>
-                  )}
-                  {!isOver && colCards.length === 0 && (
-                    <p className="text-[11px] text-muted-foreground/60 text-center py-6">
-                      Arraste cartões para cá
-                    </p>
-                  )}
-                </div>
+                  <div className="relative flex items-center justify-center mb-2.5 pb-2 border-b border-border/60">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-center text-foreground/85">
+                      {col.title}
+                      <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75">
+                        {colCards.length}
+                      </span>
+                    </h3>
+                  </div>
 
-                <button
-                  onClick={() => addCard(col.key)}
-                  className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
-                >
-                  <span>+ Adicionar um cartão</span>
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            );
-          })}
+                  <div
+                    className="space-y-1.5 mb-2 flex-1 overflow-y-auto pr-0.5"
+                    style={{ maxHeight: "500px", minHeight: "120px" }}
+                  >
+                    {colCards.map(renderCard)}
+                    {isOver && (
+                      <div className="border-2 border-dashed border-accent/60 rounded-md py-3 text-center text-[11px] text-accent font-medium">
+                        Solte aqui
+                      </div>
+                    )}
+                    {!isOver && colCards.length === 0 && (
+                      <p className="text-[11px] text-muted-foreground/60 text-center py-6">
+                        Nenhum cartão
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => openCreate(col.key)}
+                    className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
+                  >
+                    <span>+ Adicionar um cartão</span>
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
         {showBacklog && (
           <div
             onDragOver={(e) => onDragOver(e, "backlog")}
@@ -278,7 +321,7 @@ const ProjectSprints = () => {
             className={`ss-card p-4 mt-5 mx-auto animate-fade-up transition-colors ${
               overCol === "backlog" ? "bg-accent/15 border-accent" : ""
             }`}
-            style={{ maxWidth: "1100px" }}
+            style={{ maxWidth: "1200px" }}
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold">
@@ -288,15 +331,21 @@ const ProjectSprints = () => {
                 </span>
               </h3>
               <button
-                onClick={() => addCard("backlog")}
+                onClick={() => openCreate("backlog")}
                 className="h-7 w-7 rounded-full border border-foreground/70 flex items-center justify-center hover:bg-foreground/5 active:scale-95 transition-transform"
                 aria-label="Adicionar tarefa"
+                title="Adicionar tarefa"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
             <div className="space-y-1.5 min-h-[60px]">
               {cards.filter((c) => c.column === "backlog").map(renderCard)}
+              {cards.filter((c) => c.column === "backlog").length === 0 && overCol !== "backlog" && (
+                <p className="text-[11px] text-muted-foreground/60 text-center py-4">
+                  Nenhuma tarefa no backlog
+                </p>
+              )}
               {overCol === "backlog" && (
                 <div className="border-2 border-dashed border-accent/60 rounded-md py-2 text-center text-[11px] text-accent font-medium">
                   Solte aqui
@@ -306,6 +355,52 @@ const ProjectSprints = () => {
           </div>
         )}
       </div>
+
+      {/* ===== Modal criar cartão ===== */}
+      <Dialog open={!!createCol} onOpenChange={(o) => !o && setCreateCol(null)}>
+        <DialogContent className="sm:max-w-md ss-card border-2 border-foreground/90 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Novo cartão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Adicionar em: <span className="font-semibold text-foreground">
+                {ALL_STATUS.find((s) => s.key === createCol)?.title}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-foreground/70 pl-1">
+              Título <span className="text-destructive">*</span>
+            </label>
+            <input
+              autoFocus
+              value={newTitle}
+              onChange={(e) => { setNewTitle(e.target.value); if (newErr) setNewErr(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitCreate(); } }}
+              placeholder="Ex: Criar tela de login"
+              maxLength={120}
+              className="ss-input mt-1.5"
+              aria-invalid={!!newErr}
+            />
+            {newErr && <p className="mt-1 text-xs text-destructive pl-2">{newErr}</p>}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setCreateCol(null)}
+              className="rounded-full border-2 border-foreground/80 px-6 py-2.5 text-sm font-medium hover:bg-foreground/5 active:scale-[0.98] transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={submitCreate}
+              className="rounded-full bg-accent text-accent-foreground font-medium px-6 py-2.5 text-sm hover:bg-accent/90 active:scale-[0.98] transition-all shadow-[0_2px_0_0_hsl(var(--foreground)/0.9)]"
+            >
+              Criar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ===== Modal de edição ===== */}
       <Dialog open={!!editingCardId} onOpenChange={(o) => !o && closeEdit()}>
