@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, User, Store, X } from "lucide-react";
 import { useState } from "react";
+import { clearCurrentUser } from "@/lib/session";
 
 export const AppHeader = ({ title }: { title?: string }) => {
   const [open, setOpen] = useState(false);
@@ -59,6 +60,7 @@ export const AppHeader = ({ title }: { title?: string }) => {
           <button
             onClick={() => {
               setOpen(false);
+              clearCurrentUser();
               navigate("/");
             }}
             className="w-full text-left block px-4 py-3 rounded-xl text-sm hover:bg-destructive/10 text-destructive transition-colors"
