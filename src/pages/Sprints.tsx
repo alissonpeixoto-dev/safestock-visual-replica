@@ -130,33 +130,33 @@ const ProjectSprints = () => {
       onDragStart={(e) => onDragStart(e, c.id)}
       onDragEnd={onDragEnd}
       onClick={() => openEdit(c.id)}
-      className={`group relative w-full text-left text-sm p-3 rounded-xl bg-background border border-border hover:border-accent hover:shadow-[0_2px_0_0_hsl(var(--foreground)/0.85)] transition-all cursor-grab active:cursor-grabbing flex items-start gap-2 ${
+      className={`group relative w-full text-left text-[13px] px-2.5 py-2 rounded-md bg-card border border-border/80 shadow-sm hover:shadow-md hover:border-accent/70 hover:-translate-y-0.5 transition-all cursor-grab active:cursor-grabbing flex items-start gap-1.5 ${
         draggingId === c.id ? "opacity-40 scale-[0.98]" : ""
       }`}
     >
-      <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
+      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="break-words leading-snug font-medium">{c.title}</p>
+        <p className="break-words leading-snug font-medium text-foreground/90">{c.title}</p>
         {c.description && (
-          <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-1">
+          <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
             {c.description}
           </p>
         )}
       </div>
-      <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-0.5 shrink-0 -mr-1">
         <button
           onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
           aria-label="Editar"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-3 w-3" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
           aria-label="Remover"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3 w-3" />
         </button>
       </div>
     </div>
@@ -212,11 +212,11 @@ const ProjectSprints = () => {
         </div>
       </div>
 
-      <div className="flex-1 px-4 md:px-8 py-6">
-        {/* Kanban: 3 colunas iguais */}
+      <div className="flex-1 px-4 md:px-6 py-5">
+        {/* Kanban: 3 colunas compactas, estilo Trello */}
         <div
-          className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch"
-          style={{ gridAutoRows: "1fr" }}
+          className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start mx-auto"
+          style={{ maxWidth: "1100px" }}
         >
           {COLUMNS.map((col, i) => {
             const colCards = cards.filter((c) => c.column === col.key);
@@ -228,29 +228,32 @@ const ProjectSprints = () => {
                 onDragOver={(e) => onDragOver(e, col.key)}
                 onDragLeave={() => onDragLeave(col.key)}
                 onDrop={(e) => onDrop(e, col.key)}
-                className={`ss-card p-5 animate-fade-up flex flex-col transition-colors min-h-[420px] h-full ${
+                className={`ss-card p-3 animate-fade-up flex flex-col transition-colors w-full ${
                   isOver ? "bg-accent/15 border-accent" : ""
                 }`}
               >
-                <div className="relative flex items-center justify-center mb-4 pb-3 border-b border-border/70">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-center">
+                <div className="relative flex items-center justify-center mb-2.5 pb-2 border-b border-border/60">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-center text-foreground/85">
                     {col.title}
-                    <span className="ml-2 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-foreground/10 text-[11px] font-semibold text-foreground/80">
+                    <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75">
                       {colCards.length}
                     </span>
                   </h3>
-                  <MoreVertical className="h-4 w-4 text-foreground/60 absolute right-0" />
+                  <MoreVertical className="h-3.5 w-3.5 text-foreground/50 absolute right-0" />
                 </div>
 
-                <div className="space-y-2.5 mb-3 flex-1">
+                <div
+                  className="space-y-1.5 mb-2 flex-1 overflow-y-auto pr-0.5"
+                  style={{ maxHeight: "460px", minHeight: "120px" }}
+                >
                   {colCards.map(renderCard)}
                   {isOver && (
-                    <div className="border-2 border-dashed border-accent/60 rounded-xl py-4 text-center text-xs text-accent font-medium">
+                    <div className="border-2 border-dashed border-accent/60 rounded-md py-3 text-center text-[11px] text-accent font-medium">
                       Solte aqui
                     </div>
                   )}
                   {!isOver && colCards.length === 0 && (
-                    <p className="text-xs text-muted-foreground/70 text-center py-8">
+                    <p className="text-[11px] text-muted-foreground/60 text-center py-6">
                       Arraste cartões para cá
                     </p>
                   )}
@@ -258,45 +261,44 @@ const ProjectSprints = () => {
 
                 <button
                   onClick={() => addCard(col.key)}
-                  className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto pt-2 border-t border-border/50"
+                  className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
                 >
-                  <span>Adicionar um cartão</span>
-                  <Plus className="h-4 w-4" />
+                  <span>+ Adicionar um cartão</span>
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
             );
           })}
         </div>
-
-        {/* Backlog */}
         {showBacklog && (
           <div
             onDragOver={(e) => onDragOver(e, "backlog")}
             onDragLeave={() => onDragLeave("backlog")}
             onDrop={(e) => onDrop(e, "backlog")}
-            className={`ss-card p-5 mt-6 max-w-md animate-fade-up transition-colors ${
+            className={`ss-card p-4 mt-5 mx-auto animate-fade-up transition-colors ${
               overCol === "backlog" ? "bg-accent/15 border-accent" : ""
             }`}
+            style={{ maxWidth: "1100px" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold">
-                Backlog{" "}
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({cards.filter((c) => c.column === "backlog").length})
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold">
+                Backlog
+                <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75 align-middle">
+                  {cards.filter((c) => c.column === "backlog").length}
                 </span>
               </h3>
               <button
                 onClick={() => addCard("backlog")}
-                className="h-8 w-8 rounded-full border-2 border-foreground/80 flex items-center justify-center hover:bg-foreground/5 active:scale-95 transition-transform"
+                className="h-7 w-7 rounded-full border border-foreground/70 flex items-center justify-center hover:bg-foreground/5 active:scale-95 transition-transform"
                 aria-label="Adicionar tarefa"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="space-y-2 min-h-[60px]">
+            <div className="space-y-1.5 min-h-[60px]">
               {cards.filter((c) => c.column === "backlog").map(renderCard)}
               {overCol === "backlog" && (
-                <div className="border-2 border-dashed border-accent/60 rounded-lg py-2 text-center text-xs text-accent">
+                <div className="border-2 border-dashed border-accent/60 rounded-md py-2 text-center text-[11px] text-accent font-medium">
                   Solte aqui
                 </div>
               )}
