@@ -9,7 +9,6 @@ export const AppHeader = ({ title }: { title?: string }) => {
 
   const links = [
     { to: "/dashboard", label: "Meus projetos" },
-    { to: "/sprints", label: "Sprints" },
     { to: "/configuracoes", label: "Configurações" },
   ];
 

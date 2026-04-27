@@ -58,7 +58,8 @@ const Dashboard = () => {
           {sorted.map((p, i) => (
             <Link
               key={p.id}
-              to="/sprints"
+              to={`/projetos/${p.id}`}
+              state={{ name: p.name }}
               style={{ animationDelay: `${i * 60}ms` }}
               className="ss-card p-5 block animate-fade-up hover:-translate-y-0.5 transition-transform"
             >
