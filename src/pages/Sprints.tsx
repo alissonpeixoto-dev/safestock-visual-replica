@@ -275,29 +275,30 @@ const ProjectSprints = () => {
             onDragOver={(e) => onDragOver(e, "backlog")}
             onDragLeave={() => onDragLeave("backlog")}
             onDrop={(e) => onDrop(e, "backlog")}
-            className={`ss-card p-5 mt-6 max-w-md animate-fade-up transition-colors ${
+            className={`ss-card p-4 mt-5 mx-auto animate-fade-up transition-colors ${
               overCol === "backlog" ? "bg-accent/15 border-accent" : ""
             }`}
+            style={{ maxWidth: "1100px" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold">
-                Backlog{" "}
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({cards.filter((c) => c.column === "backlog").length})
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold">
+                Backlog
+                <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75 align-middle">
+                  {cards.filter((c) => c.column === "backlog").length}
                 </span>
               </h3>
               <button
                 onClick={() => addCard("backlog")}
-                className="h-8 w-8 rounded-full border-2 border-foreground/80 flex items-center justify-center hover:bg-foreground/5 active:scale-95 transition-transform"
+                className="h-7 w-7 rounded-full border border-foreground/70 flex items-center justify-center hover:bg-foreground/5 active:scale-95 transition-transform"
                 aria-label="Adicionar tarefa"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="space-y-2 min-h-[60px]">
+            <div className="space-y-1.5 min-h-[60px]">
               {cards.filter((c) => c.column === "backlog").map(renderCard)}
               {overCol === "backlog" && (
-                <div className="border-2 border-dashed border-accent/60 rounded-lg py-2 text-center text-xs text-accent">
+                <div className="border-2 border-dashed border-accent/60 rounded-md py-2 text-center text-[11px] text-accent font-medium">
                   Solte aqui
                 </div>
               )}
