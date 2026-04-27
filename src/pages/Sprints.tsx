@@ -1,6 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { useState, DragEvent, useEffect } from "react";
-import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X, Trash2 } from "lucide-react";
+import { useLocation, useParams, Link } from "react-router-dom";
+import { Pencil, ChevronDown, MoreVertical, Plus, Users, GripVertical, X, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -31,8 +32,11 @@ const initialCards: Card[] = [
   { id: "5", title: "Escrever documentação", column: "backlog" },
 ];
 
-const Sprints = () => {
-  const [projectName, setProjectName] = useState("Meu projeto");
+const ProjectSprints = () => {
+  const { projectId } = useParams();
+  const location = useLocation();
+  const initialName = (location.state as { name?: string } | null)?.name ?? "Meu projeto";
+  const [projectName, setProjectName] = useState(initialName);
   const [editing, setEditing] = useState(false);
   const [showBacklog, setShowBacklog] = useState(true);
   const [cards, setCards] = useState<Card[]>(initialCards);
@@ -390,4 +394,4 @@ const Sprints = () => {
   );
 };
 
-export default Sprints;
+export default ProjectSprints;
