@@ -130,33 +130,35 @@ const ProjectSprints = () => {
       onDragStart={(e) => onDragStart(e, c.id)}
       onDragEnd={onDragEnd}
       onClick={() => openEdit(c.id)}
-      className={`group relative w-full text-left text-sm px-3 py-2 rounded-lg bg-background border border-border hover:border-accent transition-all cursor-grab active:cursor-grabbing flex items-center gap-2 ${
+      className={`group relative w-full text-left text-sm p-3 rounded-xl bg-background border border-border hover:border-accent hover:shadow-[0_2px_0_0_hsl(var(--foreground)/0.85)] transition-all cursor-grab active:cursor-grabbing flex items-start gap-2 ${
         draggingId === c.id ? "opacity-40 scale-[0.98]" : ""
       }`}
     >
-      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-      <span className="flex-1 break-words">
-        {c.title}
+      <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="break-words leading-snug font-medium">{c.title}</p>
         {c.description && (
-          <span className="block text-[11px] text-muted-foreground/80 truncate mt-0.5">
+          <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-1">
             {c.description}
-          </span>
+          </p>
         )}
-      </span>
-      <button
-        onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
-        aria-label="Editar"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
-        aria-label="Remover"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
+      </div>
+      <div className="flex items-center gap-0.5 shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); openEdit(c.id); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-accent rounded hover:bg-foreground/5"
+          aria-label="Editar"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); removeCard(c.id); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive rounded hover:bg-foreground/5"
+          aria-label="Remover"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 
