@@ -212,11 +212,11 @@ const ProjectSprints = () => {
         </div>
       </div>
 
-      <div className="flex-1 px-4 md:px-8 py-6">
-        {/* Kanban: 3 colunas iguais */}
+      <div className="flex-1 px-4 md:px-6 py-5">
+        {/* Kanban: 3 colunas compactas, estilo Trello */}
         <div
-          className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch"
-          style={{ gridAutoRows: "1fr" }}
+          className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start mx-auto"
+          style={{ maxWidth: "1100px" }}
         >
           {COLUMNS.map((col, i) => {
             const colCards = cards.filter((c) => c.column === col.key);
@@ -228,29 +228,32 @@ const ProjectSprints = () => {
                 onDragOver={(e) => onDragOver(e, col.key)}
                 onDragLeave={() => onDragLeave(col.key)}
                 onDrop={(e) => onDrop(e, col.key)}
-                className={`ss-card p-5 animate-fade-up flex flex-col transition-colors min-h-[420px] h-full ${
+                className={`ss-card p-3 animate-fade-up flex flex-col transition-colors w-full ${
                   isOver ? "bg-accent/15 border-accent" : ""
                 }`}
               >
-                <div className="relative flex items-center justify-center mb-4 pb-3 border-b border-border/70">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-center">
+                <div className="relative flex items-center justify-center mb-2.5 pb-2 border-b border-border/60">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-center text-foreground/85">
                     {col.title}
-                    <span className="ml-2 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-foreground/10 text-[11px] font-semibold text-foreground/80">
+                    <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-foreground/10 text-[10px] font-semibold text-foreground/75">
                       {colCards.length}
                     </span>
                   </h3>
-                  <MoreVertical className="h-4 w-4 text-foreground/60 absolute right-0" />
+                  <MoreVertical className="h-3.5 w-3.5 text-foreground/50 absolute right-0" />
                 </div>
 
-                <div className="space-y-2.5 mb-3 flex-1">
+                <div
+                  className="space-y-1.5 mb-2 flex-1 overflow-y-auto pr-0.5"
+                  style={{ maxHeight: "460px", minHeight: "120px" }}
+                >
                   {colCards.map(renderCard)}
                   {isOver && (
-                    <div className="border-2 border-dashed border-accent/60 rounded-xl py-4 text-center text-xs text-accent font-medium">
+                    <div className="border-2 border-dashed border-accent/60 rounded-md py-3 text-center text-[11px] text-accent font-medium">
                       Solte aqui
                     </div>
                   )}
                   {!isOver && colCards.length === 0 && (
-                    <p className="text-xs text-muted-foreground/70 text-center py-8">
+                    <p className="text-[11px] text-muted-foreground/60 text-center py-6">
                       Arraste cartões para cá
                     </p>
                   )}
@@ -258,17 +261,15 @@ const ProjectSprints = () => {
 
                 <button
                   onClick={() => addCard(col.key)}
-                  className="flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto pt-2 border-t border-border/50"
+                  className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
                 >
-                  <span>Adicionar um cartão</span>
-                  <Plus className="h-4 w-4" />
+                  <span>+ Adicionar um cartão</span>
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
             );
           })}
         </div>
-
-        {/* Backlog */}
         {showBacklog && (
           <div
             onDragOver={(e) => onDragOver(e, "backlog")}
