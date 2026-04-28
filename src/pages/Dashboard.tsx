@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { cardsStorageKey, getCurrentUser, projectsStorageKey } from "@/lib/session";
+import { cardsStorageKey, projectsStorageKey } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
   id: string;
@@ -41,15 +42,24 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [sortDesc, setSortDesc] = useState(true);
   const [items, setItems] = useState<Project[]>([]);
+  const [ready, setReady] = useState(false);
 
-  // Carrega dados do usuário atual; redireciona se não autenticado
+  // Garante sessão antes de ler/gravar dados escopados pelo user.id
   useEffect(() => {
-    const u = getCurrentUser();
-    if (!u) {
-      navigate("/auth");
-      return;
-    }
-    setItems(loadProjects());
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (!data.session) {
+        navigate("/auth", { replace: true });
+        return;
+      }
+      setItems(loadProjects());
+      setReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!session) navigate("/auth", { replace: true });
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, [navigate]);
 
   // Modal criar/editar
@@ -62,9 +72,9 @@ const Dashboard = () => {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getCurrentUser()) return;
+    if (!ready) return;
     localStorage.setItem(projectsStorageKey(), JSON.stringify(items));
-  }, [items]);
+  }, [items, ready]);
 
   const sorted = useMemo(
     () => [...items].sort((a, b) => sortDesc ? b.updatedAt - a.updatedAt : a.updatedAt - b.updatedAt),
