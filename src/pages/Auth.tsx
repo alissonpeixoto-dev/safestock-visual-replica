@@ -11,6 +11,38 @@ import {
 type Mode = "login" | "signup";
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Definido FORA do componente Auth para não ser recriado a cada render
+// (recriar o tipo do componente desmontava o input e apagava o valor)
+const PasswordInput = ({
+  name, placeholder, show, onToggle, invalid,
+}: {
+  name: string; placeholder: string; show: boolean; onToggle: () => void; invalid?: boolean;
+}) => {
+  const inputRef = (typeof window !== "undefined") ? null : null;
+  return (
+    <div className="relative">
+      <input
+        name={name}
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        className="ss-input pr-12"
+        aria-invalid={!!invalid}
+        autoComplete={name === "password" ? "current-password" : "new-password"}
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()} // mantém foco no input
+        onClick={onToggle}
+        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-foreground/5 active:scale-90 transition-all"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+};
+
 const Auth = () => {
   const [params, setParams] = useSearchParams();
   const initial: Mode = params.get("mode") === "signup" ? "signup" : "login";
@@ -142,32 +174,6 @@ const Auth = () => {
   };
 
   const errCls = "mt-1 text-xs text-destructive pl-2";
-
-  // Wrapper de input com olho
-  const PasswordInput = ({
-    name, placeholder, show, onToggle, invalid,
-  }: {
-    name: string; placeholder: string; show: boolean; onToggle: () => void; invalid?: boolean;
-  }) => (
-    <div className="relative">
-      <input
-        name={name}
-        type={show ? "text" : "password"}
-        placeholder={placeholder}
-        className="ss-input pr-12"
-        aria-invalid={!!invalid}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-foreground/5 active:scale-90 transition-all"
-        tabIndex={-1}
-      >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
 
   return (
     <main className={`auth-container bg-background ${mode === "signup" ? "active" : ""}`}>
