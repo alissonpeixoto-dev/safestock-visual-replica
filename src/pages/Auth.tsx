@@ -143,32 +143,6 @@ const Auth = () => {
 
   const errCls = "mt-1 text-xs text-destructive pl-2";
 
-  // Wrapper de input com olho
-  const PasswordInput = ({
-    name, placeholder, show, onToggle, invalid,
-  }: {
-    name: string; placeholder: string; show: boolean; onToggle: () => void; invalid?: boolean;
-  }) => (
-    <div className="relative">
-      <input
-        name={name}
-        type={show ? "text" : "password"}
-        placeholder={placeholder}
-        className="ss-input pr-12"
-        aria-invalid={!!invalid}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-foreground/5 active:scale-90 transition-all"
-        tabIndex={-1}
-      >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
-
   return (
     <main className={`auth-container bg-background ${mode === "signup" ? "active" : ""}`}>
       <div className="auth-wrapper">
