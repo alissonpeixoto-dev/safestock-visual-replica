@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Brand } from "@/components/Brand";
 import { toast } from "sonner";
@@ -12,16 +12,40 @@ type Mode = "login" | "signup";
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Definido FORA do componente Auth para não ser recriado a cada render
-// (recriar o tipo do componente desmontava o input e apagava o valor)
 const PasswordInput = ({
   name, placeholder, show, onToggle, invalid,
 }: {
   name: string; placeholder: string; show: boolean; onToggle: () => void; invalid?: boolean;
 }) => {
-  const inputRef = (typeof window !== "undefined") ? null : null;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleToggle = () => {
+    const el = inputRef.current;
+    // Salva posição do cursor ANTES de alternar o type
+    const start = el?.selectionStart ?? null;
+    const end = el?.selectionEnd ?? null;
+
+    onToggle();
+
+    // Restaura foco e cursor APÓS o re-render
+    requestAnimationFrame(() => {
+      const node = inputRef.current;
+      if (!node) return;
+      node.focus();
+      if (start !== null && end !== null) {
+        try {
+          node.setSelectionRange(start, end);
+        } catch {
+          // alguns navegadores bloqueiam setSelectionRange em type="password"
+        }
+      }
+    });
+  };
+
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         name={name}
         type={show ? "text" : "password"}
         placeholder={placeholder}
@@ -31,8 +55,8 @@ const PasswordInput = ({
       />
       <button
         type="button"
-        onMouseDown={(e) => e.preventDefault()} // mantém foco no input
-        onClick={onToggle}
+        onMouseDown={(e) => e.preventDefault()} // evita o input perder foco no clique
+        onClick={handleToggle}
         aria-label={show ? "Ocultar senha" : "Mostrar senha"}
         className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-foreground/5 active:scale-90 transition-all"
         tabIndex={-1}
