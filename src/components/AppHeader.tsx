@@ -58,10 +58,10 @@ export const AppHeader = ({ title }: { title?: string }) => {
             </Link>
           ))}
           <button
-            onClick={() => {
+            onClick={async () => {
               setOpen(false);
-              clearCurrentUser();
-              navigate("/");
+              await clearCurrentUser();
+              navigate("/auth");
             }}
             className="w-full text-left block px-4 py-3 rounded-xl text-sm hover:bg-destructive/10 text-destructive transition-colors"
           >

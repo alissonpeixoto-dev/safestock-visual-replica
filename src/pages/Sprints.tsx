@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/select";
 import {
   cardsStorageKey,
-  getCurrentUser,
   projectNameStorageKey,
   projectsStorageKey,
 } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
 
 type ColumnKey = "todo" | "doing" | "review" | "done" | "backlog";
 interface Card { id: string; title: string; description?: string; column: ColumnKey; }
@@ -45,10 +45,25 @@ const ProjectSprints = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Redireciona se não autenticado
+  const [ready, setReady] = useState(false);
+
+  // Garante sessão Supabase antes de ler/gravar
   useEffect(() => {
-    if (!getCurrentUser()) navigate("/auth");
-  }, [navigate]);
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (!data.session) {
+        navigate("/auth", { replace: true });
+        return;
+      }
+      setCards(loadCards(projectId));
+      setReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!session) navigate("/auth", { replace: true });
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, [navigate, projectId]);
 
   const initialName =
     (location.state as { name?: string } | null)?.name ??
@@ -58,18 +73,18 @@ const ProjectSprints = () => {
   const [projectName, setProjectName] = useState(initialName);
   const [editing, setEditing] = useState(false);
   const [showBacklog, setShowBacklog] = useState(true);
-  const [cards, setCards] = useState<Card[]>(() => loadCards(projectId));
+  const [cards, setCards] = useState<Card[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<ColumnKey | null>(null);
 
   // Persist
   useEffect(() => {
-    if (!getCurrentUser()) return;
+    if (!ready) return;
     localStorage.setItem(cardsStorageKey(projectId), JSON.stringify(cards));
-  }, [cards, projectId]);
+  }, [cards, projectId, ready]);
 
   useEffect(() => {
-    if (!getCurrentUser()) return;
+    if (!ready) return;
     localStorage.setItem(projectNameStorageKey(projectId), projectName);
     // Atualiza nome no índice de projetos do usuário atual
     try {
@@ -82,7 +97,7 @@ const ProjectSprints = () => {
         }
       }
     } catch {}
-  }, [projectName, projectId]);
+  }, [projectName, projectId, ready]);
 
   // ---- Modal de edição de cartão ----
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
