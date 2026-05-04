@@ -61,7 +61,7 @@ const PasswordInput = ({
         className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-foreground/5 active:scale-90 transition-all"
         tabIndex={-1}
       >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {show ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
       </button>
     </div>
   );
