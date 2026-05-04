@@ -165,24 +165,72 @@ const ProjectSprints = () => {
 
   const removeCard = (id: string) => setCards((c) => c.filter((x) => x.id !== id));
 
-  // ---- Drag & Drop ----
+  // ---- Drag & Drop (com reordenação dentro da coluna) ----
   const onDragStart = (e: DragEvent<HTMLElement>, id: string) => {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
   };
   const onDragEnd = () => { setDraggingId(null); setOverCol(null); };
-  const onDragOver = (e: DragEvent<HTMLElement>, col: ColumnKey) => {
+
+  const onDragOverColumn = (e: DragEvent<HTMLElement>, col: ColumnKey) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     if (overCol !== col) setOverCol(col);
   };
-  const onDragLeave = (col: ColumnKey) => setOverCol((c) => (c === col ? null : c));
-  const onDrop = (e: DragEvent<HTMLElement>, col: ColumnKey) => {
+  const onDragLeaveColumn = (col: ColumnKey) => setOverCol((c) => (c === col ? null : c));
+
+  // Reordena/move o cartão `draggedId` para `targetCol` na posição `targetIndex`
+  // (índice relativo aos cartões da coluna alvo, ignorando o próprio dragged)
+  const moveCard = (draggedId: string, targetCol: ColumnKey, targetIndex: number) => {
+    setCards((arr) => {
+      const dragged = arr.find((c) => c.id === draggedId);
+      if (!dragged) return arr;
+      const without = arr.filter((c) => c.id !== draggedId);
+      // localiza posição absoluta dentro do array global usando o N-ésimo cartão da coluna alvo
+      const colCards = without.filter((c) => c.column === targetCol);
+      const updated = { ...dragged, column: targetCol };
+      let insertAt: number;
+      if (targetIndex >= colCards.length) {
+        // após o último cartão da coluna -> insere logo depois do último, ou no fim do array
+        const last = colCards[colCards.length - 1];
+        insertAt = last ? without.indexOf(last) + 1 : without.length;
+      } else {
+        const refCard = colCards[targetIndex];
+        insertAt = without.indexOf(refCard);
+      }
+      return [...without.slice(0, insertAt), updated, ...without.slice(insertAt)];
+    });
+  };
+
+  // Drop no container da coluna (final da lista)
+  const onDropColumn = (e: DragEvent<HTMLElement>, col: ColumnKey) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain") || draggingId;
     if (!id) return;
-    setCards((arr) => arr.map((c) => (c.id === id ? { ...c, column: col } : c)));
+    const colCards = cards.filter((c) => c.column === col && c.id !== id);
+    moveCard(id, col, colCards.length);
+    setDraggingId(null);
+    setOverCol(null);
+  };
+
+  // Drop sobre um cartão específico -> insere antes/depois conforme posição do mouse
+  const onDropOnCard = (e: DragEvent<HTMLElement>, targetCard: Card) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const id = e.dataTransfer.getData("text/plain") || draggingId;
+    if (!id || id === targetCard.id) {
+      setDraggingId(null);
+      setOverCol(null);
+      return;
+    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isAfter = e.clientY > rect.top + rect.height / 2;
+
+    const colCardsWithout = cards.filter((c) => c.column === targetCard.column && c.id !== id);
+    const refIdx = colCardsWithout.findIndex((c) => c.id === targetCard.id);
+    const insertAt = refIdx + (isAfter ? 1 : 0);
+    moveCard(id, targetCard.column, insertAt);
     setDraggingId(null);
     setOverCol(null);
   };
@@ -193,6 +241,8 @@ const ProjectSprints = () => {
       draggable
       onDragStart={(e) => onDragStart(e, c.id)}
       onDragEnd={onDragEnd}
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onDrop={(e) => onDropOnCard(e, c)}
       onClick={() => openEdit(c.id)}
       className={`group relative w-full text-left text-[13px] px-2.5 py-2 rounded-md bg-card border border-border/80 shadow-sm hover:shadow-md hover:border-accent/70 hover:-translate-y-0.5 transition-all cursor-grab active:cursor-grabbing flex items-start gap-1.5 ${
         draggingId === c.id ? "opacity-40 scale-[0.98]" : ""
@@ -294,9 +344,9 @@ const ProjectSprints = () => {
                 <div
                   key={col.key}
                   style={{ animationDelay: `${i * 80}ms`, flex: "1 1 0", minWidth: "250px", maxWidth: "300px" }}
-                  onDragOver={(e) => onDragOver(e, col.key)}
-                  onDragLeave={() => onDragLeave(col.key)}
-                  onDrop={(e) => onDrop(e, col.key)}
+                  onDragOver={(e) => onDragOverColumn(e, col.key)}
+                  onDragLeave={() => onDragLeaveColumn(col.key)}
+                  onDrop={(e) => onDropColumn(e, col.key)}
                   className={`ss-card p-3 animate-fade-up flex flex-col transition-colors ${
                     isOver ? "bg-accent/15 border-accent" : ""
                   }`}
@@ -329,9 +379,9 @@ const ProjectSprints = () => {
 
                   <button
                     onClick={() => openCreate(col.key)}
-                    className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
+                    className="flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
                   >
-                    <span>+ Adicionar um cartão</span>
+                    <span>Adicionar um cartão</span>
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -342,9 +392,9 @@ const ProjectSprints = () => {
 
         {showBacklog && (
           <div
-            onDragOver={(e) => onDragOver(e, "backlog")}
-            onDragLeave={() => onDragLeave("backlog")}
-            onDrop={(e) => onDrop(e, "backlog")}
+            onDragOver={(e) => onDragOverColumn(e, "backlog")}
+            onDragLeave={() => onDragLeaveColumn("backlog")}
+            onDrop={(e) => onDropColumn(e, "backlog")}
             className={`ss-card p-4 mt-5 mx-auto animate-fade-up transition-colors ${
               overCol === "backlog" ? "bg-accent/15 border-accent" : ""
             }`}
