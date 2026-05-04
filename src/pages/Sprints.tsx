@@ -344,9 +344,9 @@ const ProjectSprints = () => {
                 <div
                   key={col.key}
                   style={{ animationDelay: `${i * 80}ms`, flex: "1 1 0", minWidth: "250px", maxWidth: "300px" }}
-                  onDragOver={(e) => onDragOver(e, col.key)}
-                  onDragLeave={() => onDragLeave(col.key)}
-                  onDrop={(e) => onDrop(e, col.key)}
+                  onDragOver={(e) => onDragOverColumn(e, col.key)}
+                  onDragLeave={() => onDragLeaveColumn(col.key)}
+                  onDrop={(e) => onDropColumn(e, col.key)}
                   className={`ss-card p-3 animate-fade-up flex flex-col transition-colors ${
                     isOver ? "bg-accent/15 border-accent" : ""
                   }`}
@@ -392,9 +392,9 @@ const ProjectSprints = () => {
 
         {showBacklog && (
           <div
-            onDragOver={(e) => onDragOver(e, "backlog")}
-            onDragLeave={() => onDragLeave("backlog")}
-            onDrop={(e) => onDrop(e, "backlog")}
+            onDragOver={(e) => onDragOverColumn(e, "backlog")}
+            onDragLeave={() => onDragLeaveColumn("backlog")}
+            onDrop={(e) => onDropColumn(e, "backlog")}
             className={`ss-card p-4 mt-5 mx-auto animate-fade-up transition-colors ${
               overCol === "backlog" ? "bg-accent/15 border-accent" : ""
             }`}
