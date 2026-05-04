@@ -329,9 +329,9 @@ const ProjectSprints = () => {
 
                   <button
                     onClick={() => openCreate(col.key)}
-                    className="flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
+                    className="flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-auto pt-1.5 px-1 rounded hover:bg-foreground/5"
                   >
-                    <span>+ Adicionar um cartão</span>
+                    <span>Adicionar um cartão</span>
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
